@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"time"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
@@ -11,8 +13,33 @@ import (
 
 var wavFile *wav.Decoder
 var done chan bool
+var ticker *time.Ticker
+var timePassed time.Duration
+
+func printTime() {
+	d, _ := wavFile.Duration()
+	to := time.Now().Add(d)
+	for {
+		select {
+		case <-ticker.C:
+			// TODO: calculate the time better, it just miscalculate it
+			timePassed = time.Since(to)
+			fmt.Printf("\r%02d:%02d/%02d:%02d",
+				int64(math.Abs(timePassed.Minutes())),
+				int64(math.Abs(timePassed.Seconds())),
+				int64(d.Minutes()), int64(d.Seconds()),
+			)
+		}
+	}
+}
 
 func getWavBuf(out []int32) {
+
+	if wavFile.EOF() {
+		fmt.Println("EOF")
+		done <- true
+		return
+	}
 
 	bufferSize := len(out)
 	buf := &audio.IntBuffer{Data: make([]int, bufferSize), Format: wavFile.Format()}
@@ -72,6 +99,10 @@ func main() {
 	}
 
 	stream.Start()
+	ticker = time.NewTicker(800 * time.Millisecond)
+	defer ticker.Stop()
+	go printTime()
+
 	fmt.Printf("playing... %s\n", wavFile)
 	<-done
 	fmt.Println("done")
