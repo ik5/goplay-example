@@ -55,12 +55,15 @@ func getWavBuf(out []int32) {
 		return
 	}
 
-	if n != len(buf.Data) {
+	l := len(buf.Data)
+	if n != l {
 		buf.Data = buf.Data[:n]
 	}
 
 	for i := range out {
-		out[i] = int32(buf.Data[i]) * int32(wavFile.SampleRate)
+		if i < l {
+			out[i] = int32(buf.Data[i]) * int32(wavFile.SampleRate)
+		}
 	}
 }
 
